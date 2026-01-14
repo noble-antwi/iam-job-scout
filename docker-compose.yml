@@ -6,6 +6,7 @@ services:
     ports:
       - "5000:5000"
     environment:
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
       - GOOGLE_CSE_API_KEY=${GOOGLE_CSE_API_KEY}
       - GOOGLE_CSE_CX=${GOOGLE_CSE_CX}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
@@ -15,8 +16,7 @@ services:
       - ADMIN_API_TOKEN=${ADMIN_API_TOKEN}
       - SESSION_SECRET=${SESSION_SECRET}
     volumes:
-      - ./data:/app/data
-      - ./iam_job_scout.db:/app/iam_job_scout.db
+      - .:/app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
