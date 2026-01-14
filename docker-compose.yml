@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - GOOGLE_CSE_API_KEY=${GOOGLE_CSE_API_KEY}
+      - GOOGLE_CSE_CX=${GOOGLE_CSE_CX}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - TO_EMAIL=${TO_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_API_TOKEN=${ADMIN_API_TOKEN}
+      - SESSION_SECRET=${SESSION_SECRET}
+    volumes:
+      - ./data:/app/data
+      - ./iam_job_scout.db:/app/iam_job_scout.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

@@ -1,0 +1,167 @@
+You are building this project inside Replit for development, but the final deployment must NOT be on Replit. You must provide the best external hosting options and guide me step-by-step on how to deploy.
+
+App: “IAM Job Scout” (US, junior–mid roles)
+
+Build a web app that finds US job postings focused on Identity & Access Management (IAM) and sends a scheduled email digest. It must exclude senior/advanced roles and focus only on junior to medium roles.
+
+1) Tech Stack
+
+Backend: Python + FastAPI
+
+Frontend: Jinja2 templates (preferred simplest) OR minimal React (only if needed)
+
+DB: SQLite + SQLAlchemy (V1)
+
+Scheduler: APScheduler (daily scan + daily/weekly digest)
+
+Email: SendGrid (primary) + SMTP fallback
+
+Packaging: Docker support required (Dockerfile + docker-compose.yml)
+
+2) Data Source (No risky scraping)
+
+Use Google Programmable Search Engine (CSE) JSON API to search for postings and store only:
+
+title, snippet, URL, detected company/location if possible
+Do NOT scrape full job boards.
+
+Env vars:
+
+GOOGLE_CSE_API_KEY
+
+GOOGLE_CSE_CX
+
+SENDGRID_API_KEY
+
+FROM_EMAIL
+
+TO_EMAIL
+
+ADMIN_PASSWORD
+
+Include .env.example.
+
+3) Junior–Mid Filtering (Critical)
+
+Exclude if contains:
+
+senior, sr, principal, architect, lead, manager, director, head, vp, staff, distinguished, chief
+
+Prefer include:
+
+analyst, associate, administrator, engineer, specialist, iam, identity, okta, entra, azure ad, sso, saml, oidc, scim, iga, pam, sailpoint, saviynt, ping, cyberark
+
+Experience filter:
+
+include 0-5 years, 1-3, 2-4, 3-5
+
+exclude 7+, 10+, 12+
+
+Add scoring and dedupe.
+
+4) App Features
+
+Dashboard (latest scan, new jobs, job list, filters)
+
+Settings (recipient email, digest frequency, keyword lists, send test email)
+
+Admin actions (password protected): run scan now, send digest now
+
+DB tables: Jobs, Settings, ScanRun, DigestRun
+
+Demo mode if env vars are missing
+
+Auth:
+
+Simple admin password session login using ADMIN_PASSWORD
+
+5) External Hosting Instructions (MUST be in README)
+
+Create a README section: “Deployment (Not Replit)” with three options, and clearly mark one as recommended.
+
+Option A (RECOMMENDED): Render + Render Cron Job
+
+Deploy FastAPI as a Render Web Service
+
+Use a Render Cron Job to call internal endpoints:
+
+/admin/run-scan
+
+/admin/send-digest
+
+Steps must include:
+
+push repo to GitHub
+
+create Render web service
+
+set build/start commands
+
+set env vars
+
+create cron schedule and auth token header
+
+Option B: Fly.io (Docker)
+
+Use Dockerfile
+
+Steps:
+
+fly launch
+
+set secrets
+
+deploy
+
+Scheduling approach:
+
+either a separate Fly machine/cron-like workflow OR GitHub Actions hitting endpoints
+
+Option C: VPS (DigitalOcean / Lightsail / small Ubuntu server)
+
+Use Docker Compose
+
+Add Nginx + HTTPS (Caddy recommended for simplicity)
+
+Use systemd + cron (or just cron calling endpoints locally)
+
+Include steps for firewall + basic hardening
+
+Also include:
+
+HTTPS guidance
+
+how to keep scheduler reliable (cron-triggered jobs preferred over in-process scheduler for production)
+
+logging + monitoring basics
+
+6) Project Structure
+
+main.py
+
+templates/, static/
+
+db/, search/, jobs/, email/, scheduler/
+
+Dockerfile, docker-compose.yml
+
+README.md, .env.example, requirements.txt
+
+7) Deliverables
+
+Working app in Replit
+
+Docker build works
+
+README includes the external deployment steps (Render recommended)
+
+Demo mode works without API keys
+
+Small extra requirement (important)
+
+Implement an API key protection for admin endpoints:
+
+ADMIN_API_TOKEN env var
+
+Require header: X-ADMIN-TOKEN: <token> for cron-triggered endpoints
+(Separate from UI password login.)

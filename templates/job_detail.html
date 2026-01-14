@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }} - IAM Job Scout{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <a href="/" class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-800 font-medium mb-6 group">
+        <svg class="w-5 h-5 group-hover:-translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Back to All Jobs
+    </a>
+
+    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+        <div class="hero-gradient p-8 md:p-10 text-white">
+            <h1 class="text-2xl md:text-3xl font-bold mb-4 tracking-tight">{{ job.title }}</h1>
+            <div class="flex flex-wrap items-center gap-6 text-blue-100">
+                <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    <span class="font-medium">{{ job.company or 'Unknown Company' }}</span>
+                </span>
+                <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    {{ job.location or 'USA' }}
+                </span>
+                <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Posted {{ job.created_at.strftime('%B %d, %Y') if job.created_at else 'Recently' }}
+                </span>
+            </div>
+        </div>
+
+        <div class="p-8 md:p-10">
+            <div class="flex flex-wrap items-center gap-3 mb-8">
+                <span class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl font-semibold text-sm">
+                    Relevance Score: {{ "%.0f"|format(job.score) }}
+                </span>
+                <span class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-medium">
+                    Source: {{ job.source or 'JSearch' }}
+                </span>
+            </div>
+
+            <div class="mb-10">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">Job Description</h2>
+                <div class="prose prose-slate max-w-none">
+                    <p class="text-slate-600 leading-relaxed whitespace-pre-line">{{ job.snippet or 'No detailed description available. Click the Apply button below to view the full job posting on the original website.' }}</p>
+                </div>
+            </div>
+
+            <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" 
+               class="inline-flex items-center justify-center gap-3 bg-primary-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-700 transition shadow-lg w-full md:w-auto">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+                Apply for This Position
+            </a>
+        </div>
+    </div>
+
+    {% if similar_jobs %}
+    <div class="mt-10">
+        <h2 class="text-xl font-bold text-slate-800 mb-5">Similar Jobs You May Like</h2>
+        <div class="grid gap-4">
+            {% for similar in similar_jobs %}
+            <a href="/job/{{ similar.id }}" class="block bg-white rounded-xl shadow-sm border border-slate-100 p-5 hover:shadow-md hover:border-primary-200 transition group">
+                <h3 class="font-semibold text-slate-800 group-hover:text-primary-600 transition mb-2">{{ similar.title }}</h3>
+                <div class="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        {{ similar.company or 'Unknown' }}
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        </svg>
+                        {{ similar.location or 'USA' }}
+                    </span>
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
+                        Score: {{ "%.0f"|format(similar.score) }}
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
