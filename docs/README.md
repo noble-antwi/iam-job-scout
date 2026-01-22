@@ -2,7 +2,7 @@
 
 Complete documentation for monitoring, deployment, and operations.
 
-## 📚 Documentation Index
+## Documentation Index
 
 ### Monitoring & Observability
 
@@ -28,7 +28,7 @@ Complete documentation for monitoring, deployment, and operations.
 
 ---
 
-## 🚀 Quick Links
+## Quick Links
 
 ### Getting Started
 1. [10-Minute Monitoring Setup](MONITORING_QUICKSTART.md)
@@ -45,7 +45,7 @@ Complete documentation for monitoring, deployment, and operations.
 
 ---
 
-## 📊 Monitoring Overview
+## Monitoring Overview
 
 IAM Job Scout includes production-grade monitoring with:
 
@@ -81,7 +81,7 @@ process_memory_bytes
 
 ---
 
-## 🎯 Common Tasks
+## Common Tasks
 
 ### Setting Up Monitoring
 → Start here: [MONITORING_QUICKSTART.md](MONITORING_QUICKSTART.md)

@@ -32,10 +32,10 @@ targets: ['192.168.1.100:5000']
 ```
 
 **Pros:**
-- ✅ IP never changes
-- ✅ Works even after container restarts
-- ✅ Simple to configure
-- ✅ No docker-compose changes needed
+- IP never changes
+- Works even after container restarts
+- Simple to configure
+- No docker-compose changes needed
 
 **Cons:**
 - Need to know your host IP (easy: `hostname -I`)
@@ -73,9 +73,9 @@ scrape_configs:
 ```
 
 **Pros:**
-- ✅ Automatic DNS resolution
-- ✅ Works even after restarts
-- ✅ Clean configuration
+- Automatic DNS resolution
+- Works even after restarts
+- Clean configuration
 
 **Cons:**
 - Requires Prometheus in Docker
@@ -113,8 +113,8 @@ targets: ['172.20.0.10:5000']
 ```
 
 **Pros:**
-- ✅ IP is predictable and fixed
-- ✅ Works after restarts
+- IP is predictable and fixed
+- Works after restarts
 
 **Cons:**
 - More complex configuration
@@ -138,9 +138,9 @@ targets: ['localhost:5000']  # or '127.0.0.1:5000'
 ```
 
 **Pros:**
-- ✅ Very simple
-- ✅ Uses localhost
-- ✅ No port mapping needed
+- Very simple
+- Uses localhost
+- No port mapping needed
 
 **Cons:**
 - ✗ Less network isolation

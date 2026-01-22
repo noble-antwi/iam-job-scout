@@ -680,13 +680,13 @@ METRIC.labels(status=status, operation=operation).inc()
 
 ## Next Steps
 
-1. ✅ Verify `/metrics` endpoint works
-2. ✅ Configure Prometheus to scrape your app
-3. ✅ Create basic Grafana dashboard
-4. ✅ Set up critical alerts
-5. ⏭️ Add system metrics with Node Exporter
-6. ⏭️ Configure Alertmanager for notifications
-7. ⏭️ Create runbooks for each alert
+1. Verify `/metrics` endpoint works
+2. Configure Prometheus to scrape your app
+3. Create basic Grafana dashboard
+4. Set up critical alerts
+5. Add system metrics with Node Exporter
+6. Configure Alertmanager for notifications
+7. Create runbooks for each alert
 
 ---
 

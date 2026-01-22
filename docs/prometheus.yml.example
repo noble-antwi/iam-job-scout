@@ -62,11 +62,11 @@ scrape_configs:
       - targets:
           # REPLACE THIS with your Docker HOST IP (recommended)
           # 
-          # ✅ RECOMMENDED: Use Docker Host IP (stable, doesn't change)
+          # RECOMMENDED: Use Docker Host IP (stable, doesn't change)
           #   Get it with: hostname -I | awk '{print $1}'
           #   Example: '192.168.1.100:5000'
           #
-          # ⚠️  NOT RECOMMENDED: Container IP (changes on restart!)
+          # NOT RECOMMENDED: Container IP (changes on restart!)
           #   Get it with: docker inspect iam-job-scout-web-1 | grep IPAddress
           #   Example: '172.18.0.2:5000'
           #

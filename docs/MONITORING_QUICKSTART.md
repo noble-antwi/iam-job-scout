@@ -2,13 +2,13 @@
 
 This guide gets you up and running with monitoring in 10 minutes.
 
-## ✅ Prerequisites
+## Prerequisites
 
 - Your Prometheus server at `http://192.168.60.2:9090/`
 - Your Grafana server at `http://192.168.60.2:3000/`
 - IAM Job Scout running in Docker
 
-## 📋 Step-by-Step Setup
+## Step-by-Step Setup
 
 ### Step 1: Find Your Application's IP Address (2 min)
 
@@ -23,15 +23,15 @@ hostname -I | awk '{print $1}'
 # Method 2: Get container IP (NOT RECOMMENDED - Changes on restart!)
 docker inspect iam-job-scout-web-1 | grep IPAddress
 # Example output: 172.18.0.2
-# ⚠️  WARNING: This IP WILL CHANGE when container restarts!
+# WARNING: This IP WILL CHANGE when container restarts!
 
 # Method 3: Test it works from Prometheus server
 curl http://<YOUR_IP>:5000/health
 ```
 
-**💡 Which IP to Use?**
-- ✅ **Use Host IP** (Method 1) - Stable, doesn't change
-- ❌ **Avoid Container IP** (Method 2) - Changes on every restart
+**Which IP to Use?**
+- **Use Host IP** (Method 1) - Stable, doesn't change
+- **Avoid Container IP** (Method 2) - Changes on every restart
 
 **Save this IP address** - you'll need it next.
 
@@ -108,7 +108,7 @@ sudo systemctl reload prometheus
 
 #### 5a. Add Data Source (if not already done)
 
-1. Click **⚙️ Configuration** → **Data Sources**
+1. Click **Configuration** → **Data Sources**
 2. Click **Add data source**
 3. Select **Prometheus**
 4. URL: `http://localhost:9090` (or `http://192.168.60.2:9090`)
@@ -147,11 +147,11 @@ Thresholds: Base=green, 1=yellow, 5=red
 Click **Apply**
 
 #### Save Dashboard
-1. Click **💾 Save dashboard** (top right)
+1. Click **Save dashboard** (top right)
 2. Name: `IAM Job Scout - Overview`
 3. Click **Save**
 
-## 🎉 Done! What's Next?
+## Done! What's Next?
 
 ### View Your Metrics
 
@@ -181,7 +181,7 @@ Watch the metrics update in Grafana (refresh after 30 seconds).
 | Response time p95 | 95% requests faster than | < 1 second |
 | `iam_last_successful_scan_timestamp` | Last scan time | < 24 hours ago |
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### "No data" in Grafana
 
@@ -245,16 +245,16 @@ curl -X POST http://192.168.60.2:9090/-/reload
 
 **Why this works:** Port 5000 is mapped from container to host, so host IP always works.
 
-## 📚 Next Steps
+## Next Steps
 
-1. ✅ **Done!** Basic monitoring working
-2. 📖 Read [MONITORING.md](MONITORING.md) for detailed guide
-3. 🚨 Set up alerts: Copy `prometheus-alerts.yml.example`
-4. 📊 Create more dashboards (see examples in MONITORING.md)
-5. 🔔 Configure Alertmanager for notifications
-6. 📈 Add Node Exporter for system metrics
+1. **Done!** Basic monitoring working
+2. Read [MONITORING.md](MONITORING.md) for detailed guide
+3. Set up alerts: Copy `prometheus-alerts.yml.example`
+4. Create more dashboards (see examples in MONITORING.md)
+5. Configure Alertmanager for notifications
+6. Add Node Exporter for system metrics
 
-## 🆘 Need Help?
+## Need Help?
 
 Check the full documentation:
 - **Full Guide:** [MONITORING.md](MONITORING.md)
