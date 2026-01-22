@@ -14,13 +14,17 @@ A web-based job board that helps junior to mid-level professionals find Identity
 - **Admin Panel**: Run manual scans (password protected)
 - **Demo Mode**: Works without API keys using sample data
 - **API Token Protection**: Secure endpoints for cron-triggered operations
+- **Production Monitoring**: Built-in Prometheus metrics and Grafana dashboard support
+- **Performance Tracking**: Real-time metrics for latency, traffic, errors, and saturation
+- **Business Metrics**: Track job counts, scan success rates, and user activity
 
 ## Tech Stack
 
 - **Backend**: Python + FastAPI
 - **Frontend**: Jinja2 Templates + TailwindCSS
 - **Database**: SQLite (default) or PostgreSQL
-- **Scheduler**: APScheduler (optional)
+- **Scheduler**: APScheduler
+- **Monitoring**: Prometheus + Grafana
 - **Containerization**: Docker + Docker Compose
 
 ## Quick Start (Development)
@@ -72,6 +76,7 @@ A web-based job board that helps junior to mid-level professionals find Identity
 - `GET /api/jobs` - List jobs (JSON with search/filter params)
 - `GET /api/stats` - Get statistics
 - `GET /health` - Health check
+- `GET /metrics` - Prometheus metrics endpoint
 
 ### Protected (Session Auth or API Token)
 - `POST /admin/run-scan` - Trigger job scan
@@ -85,10 +90,106 @@ curl -X POST https://your-app.com/admin/run-scan \
 ```
 
 ---
+Monitoring & Observability
 
-# Deployment (Not Replit)
+IAM Job Scout includes **production-grade monitoring** with Prometheus metrics and Grafana dashboard support.
 
-This application is developed in Replit but should be deployed externally for production use.
+## 📊 Available Metrics
+
+### Application Performance
+- **HTTP Request Duration** - Response time histograms (p50, p95, p99)
+- **Request Rate** - Requests per second by endpoint
+- **Error Rate** - Failed requests and application errors
+- **Concurrent Requests** - Active requests being processed
+
+### Business Metrics
+- **Total Jobs** - Current job count in database
+- **New Jobs This Week** - Jobs added in last 7 days
+- **Saved/Applied Jobs** - User engagement tracking
+- **Scan Success Rate** - Job scan performance
+- **Last Successful Scan** - Timestamp of last successful scan
+
+### Database Performance
+- **Query Duration** - Database query latency
+- **Active Connections** - Connection pool utilization
+- **Database Operations** - Operations by type (select, insert, update, delete)
+
+### System Metrics
+- **Uptime** - Application uptime in seconds
+- **Memory Usage** - Process memory consumption
+- **Python GC** - Garbage collection metrics
+
+## 🚀 Quick Setup
+
+### 1. Access Metrics Endpoint
+
+```bash
+curl http://your-app:5000/metrics
+```
+
+### 2. Configure Prometheus
+
+Add to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'iam-job-scout'
+    static_configs:
+      - targets: ['your-app-host:5000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+```
+
+### 3. Create Grafana Dashboard
+
+Import metrics and create panels for:
+- Total Jobs (Stat)
+- Request Rate (Time Series)
+- Response Time p95 (Time Series)
+- Error Rate % (Gauge)
+
+## 📚 Detailed Documentation
+
+- **[Quick Start Guide](docs/MONITORING_QUICKSTART.md)** - Get monitoring running in 10 minutes
+- **[Complete Monitoring Guide](docs/MONITORING.md)** - Comprehensive documentation with examples
+- **[Architecture Diagram](docs/ARCHITECTURE_DIAGRAM.md)** - Visual guide to monitoring setup
+- **[Docker IP Guide](docs/DOCKER_IP_GUIDE.md)** - Networking tips for Docker deployments
+- **[Prometheus Config Example](docs/prometheus.yml.example)** - Ready-to-use configuration
+- **[Alert Rules Example](docs/prometheus-alerts.yml.example)** - Production-ready alerts
+
+## 🎯 Key Monitoring Queries
+
+```promql
+# Total jobs in database
+iam_jobs_total
+
+# Request rate (req/sec)
+rate(http_requests_total[5m])
+
+# Error rate percentage
+(sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100
+
+# Response time 95th percentile
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+# Time since last successful scan (hours)
+(time() - iam_last_successful_scan_timestamp) / 3600
+```
+
+## 🚨 Recommended Alerts
+
+- Service Down (critical)
+- Error Rate > 5% (warning)
+- Response Time p95 > 2s (warning)
+- No successful scan in 24 hours (warning)
+- Database connections > 80% (warning)
+
+---
+
+# 
+# Deployment
+
+
 
 ## Option A: Render (RECOMMENDED)
 

@@ -13,9 +13,10 @@ class JSearchAPI:
     def is_configured(self) -> bool:
         return bool(self.api_key)
 
-    async def search(self, query: str, page: int = 1, num_pages: int = 1) -> List[Dict]:
+    async def search(self, query: str, page: int = 1, num_pages: int = 2) -> List[Dict]:
         if not self.is_configured():
-            return self._get_demo_results()
+            # No API key - return empty list (no demo jobs)
+            return []
 
         headers = {
             "X-RapidAPI-Key": self.api_key,
@@ -27,7 +28,8 @@ class JSearchAPI:
             "page": str(page),
             "num_pages": str(num_pages),
             "country": "us",
-            "date_posted": "week"
+            "date_posted": "month",  # Expanded from "week" to catch more listings
+            "employment_types": "FULLTIME,CONTRACTOR"  # Focus on full-time and contract roles
         }
 
         try:
@@ -51,7 +53,8 @@ class JSearchAPI:
 
         for job in jobs:
             title = job.get("job_title", "")
-            description = job.get("job_description", "")[:500] if job.get("job_description") else ""
+            # Use more of the description for better keyword matching
+            description = job.get("job_description", "")[:1500] if job.get("job_description") else ""
 
             is_valid, score = JobFilter.is_junior_mid_role(title, description)
             if not is_valid:
@@ -77,92 +80,49 @@ class JSearchAPI:
 
         return results
 
-    def _get_demo_results(self) -> List[Dict]:
-        return [
-            {
-                "title": "IAM Analyst - Entry Level",
-                "company": "TechCorp",
-                "location": "Remote, USA",
-                "snippet": "Looking for an entry-level IAM Analyst to join our security team. Experience with Okta and Azure AD preferred. 0-2 years experience required.",
-                "url": "https://example.com/job/iam-analyst-1",
-                "source": "demo",
-                "score": 35.0
-            },
-            {
-                "title": "Identity & Access Management Engineer",
-                "company": "SecureTech",
-                "location": "San Francisco, CA",
-                "snippet": "Join our IAM team as an engineer. Work with SailPoint, SAML, and OIDC. 1-3 years experience in identity management.",
-                "url": "https://example.com/job/iam-engineer-2",
-                "source": "demo",
-                "score": 45.0
-            },
-            {
-                "title": "Associate IAM Specialist",
-                "company": "CloudSecure",
-                "location": "Austin, TX",
-                "snippet": "Entry level position for IAM specialist. Knowledge of SSO, SCIM, and PAM solutions. Training provided. 0-3 years experience.",
-                "url": "https://example.com/job/iam-specialist-3",
-                "source": "demo",
-                "score": 50.0
-            },
-            {
-                "title": "Junior Identity Management Administrator",
-                "company": "DataGuard",
-                "location": "New York, NY",
-                "snippet": "We're hiring a junior administrator for our identity management team. Experience with CyberArk and Saviynt a plus. 1-4 years experience.",
-                "url": "https://example.com/job/iam-admin-4",
-                "source": "demo",
-                "score": 55.0
-            },
-            {
-                "title": "IAM Security Analyst - Mid Level",
-                "company": "CyberShield",
-                "location": "Boston, MA",
-                "snippet": "Mid-level IAM Security Analyst needed. Work with Ping Identity, Azure AD, and Entra. 2-4 years of IAM experience required.",
-                "url": "https://example.com/job/iam-security-5",
-                "source": "demo",
-                "score": 40.0
-            },
-            {
-                "title": "Okta Administrator - Junior",
-                "company": "IdentityFirst",
-                "location": "Seattle, WA",
-                "snippet": "Looking for a junior Okta administrator. Will work on SSO implementations and user lifecycle management. 1-2 years experience.",
-                "url": "https://example.com/job/okta-admin-6",
-                "source": "demo",
-                "score": 52.0
-            },
-            {
-                "title": "Azure AD Specialist - Entry Level",
-                "company": "CloudWorks",
-                "location": "Denver, CO",
-                "snippet": "Entry-level position managing Azure Active Directory and Entra ID. Knowledge of conditional access policies preferred.",
-                "url": "https://example.com/job/azure-ad-7",
-                "source": "demo",
-                "score": 48.0
-            },
-            {
-                "title": "Identity Governance Analyst",
-                "company": "SecureAccess Inc",
-                "location": "Chicago, IL",
-                "snippet": "Join our IGA team. Work with SailPoint IdentityNow. 2-4 years experience in identity governance and access certifications.",
-                "url": "https://example.com/job/iga-analyst-8",
-                "source": "demo",
-                "score": 42.0
-            }
-        ]
-
     def get_search_queries(self) -> List[str]:
         return [
-            "IAM analyst entry level USA",
-            "identity access management engineer junior USA",
-            "Okta administrator USA",
-            "Azure AD specialist USA",
-            "SailPoint engineer USA",
-            "identity management analyst USA",
-            "SSO specialist entry level USA",
-            "CyberArk administrator junior USA",
-            "IAM security analyst USA",
-            "access management engineer USA"
+            # Core IAM searches (highest priority - broad terms)
+            "identity access management",
+            "IAM engineer",
+            "IAM analyst",
+            "identity engineer",
+            "identity analyst",
+
+            # Platform-specific searches (high specificity)
+            "Okta engineer",
+            "Okta administrator",
+            "SailPoint engineer",
+            "SailPoint analyst",
+            "CyberArk engineer",
+            "Azure AD engineer",
+            "Entra ID engineer",
+            "Saviynt engineer",
+            "Ping Identity",
+            "ForgeRock engineer",
+
+            # Concept-based searches
+            "privileged access management",
+            "identity governance",
+            "SSO engineer",
+            "access management analyst",
+            "directory services engineer",
+            "Active Directory administrator",
+
+            # Security analyst roles (often include IAM responsibilities)
+            "security analyst identity",
+            "security analyst access management",
+            "IT security analyst IAM",
+            "cybersecurity analyst identity",
+            "information security analyst access",
+
+            # Adjacent roles that commonly involve IAM
+            "access analyst",
+            "security operations analyst",
+            "GRC analyst identity",
+            "compliance analyst access",
+
+            # Additional entry-level focused queries
+            "identity specialist",
+            "IAM support",
         ]

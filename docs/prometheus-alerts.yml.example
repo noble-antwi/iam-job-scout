@@ -1,0 +1,322 @@
+# Prometheus Alert Rules for IAM Job Scout
+#
+# Place this file on your Prometheus server at:
+# /etc/prometheus/rules/iam-job-scout.yml
+#
+# Then reference it in prometheus.yml:
+#   rule_files:
+#     - "/etc/prometheus/rules/*.yml"
+#
+# After adding, reload Prometheus:
+#   curl -X POST http://localhost:9090/-/reload
+
+groups:
+  ##############################################################################
+  # SERVICE AVAILABILITY ALERTS
+  ##############################################################################
+  - name: service_availability
+    interval: 30s
+    rules:
+      # Critical: Service is completely down
+      - alert: IAMJobScoutDown
+        expr: up{job="iam-job-scout"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "IAM Job Scout service is DOWN"
+          description: "The IAM Job Scout application has been unreachable for more than 1 minute."
+          runbook: "Check if Docker container is running: docker ps | grep iam-job-scout"
+
+      # Warning: Service was down recently (flapping)
+      - alert: IAMJobScoutFlapping
+        expr: changes(up{job="iam-job-scout"}[10m]) > 3
+        for: 5m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: "IAM Job Scout is flapping"
+          description: "Service has restarted {{ $value }} times in the last 10 minutes."
+          runbook: "Check Docker logs: docker logs iam-job-scout-web-1 --tail 100"
+
+  ##############################################################################
+  # ERROR RATE ALERTS
+  ##############################################################################
+  - name: error_rates
+    interval: 1m
+    rules:
+      # High error rate
+      - alert: HighHTTPErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="iam-job-scout",status_code=~"5.."}[5m]))
+            / 
+            sum(rate(http_requests_total{job="iam-job-scout"}[5m]))
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "Error rate is {{ $value | printf \"%.2f\" }}% (threshold: 5%)"
+          runbook: "Check application logs for errors and investigate failing endpoints"
+
+      # Critical error rate
+      - alert: CriticalHTTPErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="iam-job-scout",status_code=~"5.."}[5m]))
+            / 
+            sum(rate(http_requests_total{job="iam-job-scout"}[5m]))
+          ) * 100 > 20
+        for: 2m
+        labels:
+          severity: critical
+          category: errors
+        annotations:
+          summary: "CRITICAL: Very high error rate"
+          description: "Error rate is {{ $value | printf \"%.2f\" }}% (threshold: 20%)"
+          runbook: "Immediate investigation required. Service may be degraded."
+
+      # Application errors increasing
+      - alert: ApplicationErrorsIncreasing
+        expr: rate(application_errors_total{job="iam-job-scout"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "Application errors are increasing"
+          description: "{{ $value | printf \"%.2f\" }} errors per second detected"
+          runbook: "Check logs: docker logs iam-job-scout-web-1 | grep ERROR"
+
+  ##############################################################################
+  # PERFORMANCE / LATENCY ALERTS
+  ##############################################################################
+  - name: performance
+    interval: 1m
+    rules:
+      # Slow response times
+      - alert: SlowResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{
+              job="iam-job-scout",
+              endpoint!="/metrics"
+            }[5m])
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Slow response times detected"
+          description: "95th percentile response time is {{ $value | printf \"%.2f\" }}s (threshold: 2s)"
+          runbook: "Check database query performance and external API calls"
+
+      # Very slow response times
+      - alert: VerySlowResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{
+              job="iam-job-scout",
+              endpoint!="/metrics"
+            }[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "CRITICAL: Very slow response times"
+          description: "95th percentile response time is {{ $value | printf \"%.2f\" }}s (threshold: 5s)"
+          runbook: "Immediate investigation required. Users experiencing significant delays."
+
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95, 
+            rate(db_query_duration_seconds_bucket{job="iam-job-scout"}[5m])
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile DB query time is {{ $value | printf \"%.2f\" }}s"
+          runbook: "Review slow queries and consider adding indexes"
+
+  ##############################################################################
+  # BUSINESS LOGIC ALERTS (Job Scanning)
+  ##############################################################################
+  - name: business_logic
+    interval: 1m
+    rules:
+      # No successful scan in 24 hours
+      - alert: NoRecentJobScan
+        expr: (time() - iam_last_successful_scan_timestamp) > 86400
+        for: 1h
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "No successful job scan in 24 hours"
+          description: "Last successful scan was {{ $value | humanizeDuration }} ago"
+          runbook: "Check scheduler logs and manually trigger scan if needed"
+
+      # No successful scan in 48 hours (critical)
+      - alert: NoRecentJobScanCritical
+        expr: (time() - iam_last_successful_scan_timestamp) > 172800
+        for: 1h
+        labels:
+          severity: critical
+          category: business
+        annotations:
+          summary: "CRITICAL: No job scan in 48+ hours"
+          description: "Last successful scan was {{ $value | humanizeDuration }} ago"
+          runbook: "Immediate investigation required. Job data may be stale."
+
+      # Scan failures
+      - alert: JobScanFailures
+        expr: rate(iam_scan_runs_total{status="failed"}[1h]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "Job scans are failing"
+          description: "Scans have failed in the last hour"
+          runbook: "Check logs for scan errors: docker logs iam-job-scout-web-1 | grep 'Scan error'"
+
+      # Scan taking too long
+      - alert: LongRunningScan
+        expr: |
+          rate(scan_duration_seconds_sum[30m]) / 
+          rate(scan_duration_seconds_count[30m]) > 1800
+        for: 10m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "Job scans taking too long"
+          description: "Average scan duration is {{ $value | printf \"%.0f\" }}s (30+ minutes)"
+          runbook: "Investigate API rate limits or network issues"
+
+  ##############################################################################
+  # DATABASE ALERTS
+  ##############################################################################
+  - name: database
+    interval: 1m
+    rules:
+      # Database connection pool near capacity
+      - alert: DatabaseConnectionsHigh
+        expr: |
+          db_connections_active / 
+          (db_connections_active + db_connections_idle) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: saturation
+        annotations:
+          summary: "Database connection pool nearly full"
+          description: "Connection pool is {{ $value | printf \"%.1f\" }}% utilized (threshold: 80%)"
+          runbook: "Consider increasing pool size or investigating connection leaks"
+
+      # Database errors
+      - alert: DatabaseErrors
+        expr: rate(database_errors_total{job="iam-job-scout"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "Database errors detected"
+          description: "{{ $value | printf \"%.2f\" }} database errors per second"
+          runbook: "Check database connectivity and query errors in logs"
+
+  ##############################################################################
+  # EXTERNAL API ALERTS
+  ##############################################################################
+  - name: external_apis
+    interval: 1m
+    rules:
+      # External API errors
+      - alert: ExternalAPIErrors
+        expr: rate(external_api_errors_total{job="iam-job-scout"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: external
+        annotations:
+          summary: "External API errors detected"
+          description: "{{ $value | printf \"%.2f\" }} API errors per second for {{ $labels.api_name }}"
+          runbook: "Check external API status and rate limits"
+
+      # Slow external API
+      - alert: SlowExternalAPI
+        expr: |
+          rate(external_api_duration_seconds_sum{job="iam-job-scout"}[5m]) / 
+          rate(external_api_duration_seconds_count{job="iam-job-scout"}[5m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "External API calls are slow"
+          description: "{{ $labels.api_name }} average response time is {{ $value | printf \"%.2f\" }}s"
+          runbook: "Check external API status page or consider timeout adjustments"
+
+  ##############################################################################
+  # RESOURCE SATURATION ALERTS
+  ##############################################################################
+  - name: resource_saturation
+    interval: 1m
+    rules:
+      # Too many concurrent requests
+      - alert: HighConcurrentRequests
+        expr: sum(http_requests_in_progress{job="iam-job-scout"}) > 50
+        for: 5m
+        labels:
+          severity: warning
+          category: saturation
+        annotations:
+          summary: "High number of concurrent requests"
+          description: "{{ $value }} requests being processed simultaneously"
+          runbook: "Check if application can handle the load or if there's a DDoS attempt"
+
+      # Application restarted recently
+      - alert: ApplicationRestarted
+        expr: application_uptime_seconds{job="iam-job-scout"} < 300
+        for: 1m
+        labels:
+          severity: info
+          category: availability
+        annotations:
+          summary: "Application was recently restarted"
+          description: "Application has been up for only {{ $value | humanizeDuration }}"
+          runbook: "Check if restart was intentional or due to crash"
+
+##############################################################################
+# NOTES ON USING THESE ALERTS
+##############################################################################
+#
+# Severity Levels:
+#   - critical: Requires immediate action (page on-call)
+#   - warning: Requires investigation within business hours
+#   - info: Informational, for awareness
+#
+# Testing Alerts:
+#   1. Check syntax: promtool check rules /etc/prometheus/rules/iam-job-scout.yml
+#   2. View in Prometheus UI: http://192.168.60.2:9090/alerts
+#   3. Force trigger: Temporarily lower thresholds to test
+#
+# Customization:
+#   - Adjust thresholds based on your baseline metrics
+#   - Add notification channels in Alertmanager
+#   - Create runbooks for each alert
+#
+##############################################################################

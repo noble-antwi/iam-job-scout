@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
+        // Dark mode initialization - run before page renders to prevent flash
+        if (localStorage.getItem('darkMode') === 'true' ||
+            (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -41,12 +48,18 @@
         .hero-gradient {
             background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #4f46e5 100%);
         }
+        .dark .hero-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+        }
         .card-hover {
             transition: all 0.2s ease;
         }
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+        }
+        .dark .card-hover:hover {
+            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.5);
         }
         .line-clamp-2 {
             display: -webkit-box;
@@ -61,7 +74,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col antialiased">
+<body class="bg-slate-50 dark:bg-slate-900 min-h-screen flex flex-col antialiased transition-colors duration-200">
     <nav class="hero-gradient shadow-xl sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -78,13 +91,23 @@
                     <span class="ml-4 px-3 py-1 bg-amber-400 text-amber-900 text-xs rounded-full font-semibold uppercase tracking-wide">Demo</span>
                     {% endif %}
                 </div>
-                <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-4">
                     <a href="/" class="text-white/80 hover:text-white text-sm font-medium transition">Jobs</a>
                     {% if user %}
+                    <a href="/saved" class="text-white/80 hover:text-white text-sm font-medium transition">Saved</a>
                     <a href="/logout" class="text-white/80 hover:text-white text-sm font-medium transition">Logout</a>
                     {% else %}
                     <a href="/login" class="glass-effect text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition">Admin</a>
                     {% endif %}
+                    <!-- Dark Mode Toggle -->
+                    <button onclick="toggleDarkMode()" class="p-2 text-white/80 hover:text-white transition" title="Toggle dark mode">
+                        <svg id="dark-icon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <svg id="light-icon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -94,6 +117,45 @@
         {% block content %}{% endblock %}
     </main>
     
+    <script>
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Only trigger if not typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                return;
+            }
+
+            // 'd' - toggle dark mode
+            if (e.key === 'd' && !e.ctrlKey && !e.metaKey) {
+                toggleDarkMode();
+            }
+            // '/' - focus search
+            if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                const searchInput = document.querySelector('input[name="q"]');
+                if (searchInput) searchInput.focus();
+            }
+            // 'g' then 'h' - go home
+            if (e.key === 'h' && !e.ctrlKey && !e.metaKey) {
+                window.location.href = '/';
+            }
+            // 'g' then 's' - go to saved
+            if (e.key === 's' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                window.location.href = '/saved';
+            }
+            // '?' - show keyboard shortcuts help
+            if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+                alert('Keyboard Shortcuts:\n\nd - Toggle dark mode\n/ - Focus search\nh - Go home\ns - Go to saved jobs');
+            }
+        });
+    </script>
+
     <footer class="bg-slate-900 text-white py-12 mt-auto">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex flex-col md:flex-row justify-between items-center gap-6">

@@ -121,41 +121,70 @@
     {% endif %}
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800">
-                    {% if current_query %}
-                    Results for "{{ current_query }}"
-                    {% else %}
-                    Latest Jobs
-                    {% endif %}
-                </h2>
-                <p class="text-sm text-slate-500 mt-1">{{ total_jobs }} jobs found</p>
+        <div class="p-6 border-b border-slate-100">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">
+                        {% if current_query %}
+                        Results for "{{ current_query }}"
+                        {% elif current_filter == 'today' %}
+                        New Today
+                        {% elif current_filter == 'high_score' %}
+                        Top Matches (Score 70+)
+                        {% elif current_filter == 'remote' %}
+                        Remote Jobs
+                        {% else %}
+                        Latest Jobs
+                        {% endif %}
+                    </h2>
+                    <p class="text-sm text-slate-500 mt-1">{{ total_jobs }} jobs found</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-sm text-slate-500">Sort by:</span>
+                    <form method="get" action="/" id="sortForm">
+                        <input type="hidden" name="q" value="{{ current_query }}">
+                        <input type="hidden" name="location" value="{{ current_location }}">
+                        <input type="hidden" name="filter" value="{{ current_filter }}">
+                        <select name="sort" onchange="document.getElementById('sortForm').submit()"
+                                class="border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 focus:border-primary-300 focus:outline-none bg-slate-50 cursor-pointer">
+                            <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                            <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                            <option value="relevance" {% if current_sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                            <option value="company" {% if current_sort == 'company' %}selected{% endif %}>Company</option>
+                        </select>
+                    </form>
+                </div>
             </div>
-            <div class="flex items-center gap-3">
-                <span class="text-sm text-slate-500">Sort by:</span>
-                <form method="get" action="/" id="sortForm">
-                    <input type="hidden" name="q" value="{{ current_query }}">
-                    <input type="hidden" name="location" value="{{ current_location }}">
-                    <select name="sort" onchange="document.getElementById('sortForm').submit()" 
-                            class="border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 focus:border-primary-300 focus:outline-none bg-slate-50 cursor-pointer">
-                        <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
-                        <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
-                        <option value="relevance" {% if current_sort == 'relevance' %}selected{% endif %}>Relevance</option>
-                        <option value="company" {% if current_sort == 'company' %}selected{% endif %}>Company</option>
-                    </select>
-                </form>
+            <!-- Quick Filters -->
+            <div class="flex flex-wrap gap-2 mt-4">
+                <a href="/" class="px-3 py-1.5 rounded-lg text-sm font-medium transition {% if not current_filter and not current_query %}bg-primary-100 text-primary-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    All Jobs
+                </a>
+                <a href="/?filter=today" class="px-3 py-1.5 rounded-lg text-sm font-medium transition {% if current_filter == 'today' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    New Today
+                </a>
+                <a href="/?filter=high_score&sort=relevance" class="px-3 py-1.5 rounded-lg text-sm font-medium transition {% if current_filter == 'high_score' %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Top Matches
+                </a>
+                <a href="/?filter=remote" class="px-3 py-1.5 rounded-lg text-sm font-medium transition {% if current_filter == 'remote' %}bg-violet-100 text-violet-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Remote Only
+                </a>
             </div>
         </div>
 
         <div class="divide-y divide-slate-100">
             {% for job in jobs %}
-            <div class="p-6 hover:bg-slate-50 transition group">
+            <div class="p-6 hover:bg-slate-50 transition group {% if job.status == 'stale' %}opacity-60{% endif %}">
                 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-semibold text-slate-800 mb-2 group-hover:text-primary-600 transition">
-                            <a href="/job/{{ job.id }}" class="hover:underline">{{ job.title }}</a>
-                        </h3>
+                        <div class="flex items-center gap-2 mb-2">
+                            <h3 class="text-lg font-semibold text-slate-800 group-hover:text-primary-600 transition">
+                                <a href="/job/{{ job.id }}" class="hover:underline">{{ job.title }}</a>
+                            </h3>
+                            {% if job.status == 'stale' %}
+                            <span class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded text-xs font-medium">May be expired</span>
+                            {% endif %}
+                        </div>
                         <div class="flex flex-wrap items-center gap-4 text-sm text-slate-600 mb-3">
                             <span class="flex items-center gap-1.5">
                                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,6 +205,23 @@
                                 </svg>
                                 {{ job.created_at.strftime('%b %d, %Y') if job.created_at else 'Recently' }}
                             </span>
+                            {% if job.salary_min or job.salary_max %}
+                            <span class="flex items-center gap-1.5 text-emerald-600 font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                {% if job.salary_min and job.salary_max %}
+                                ${{ "{:,}".format(job.salary_min) }} - ${{ "{:,}".format(job.salary_max) }}
+                                {% elif job.salary_min %}
+                                ${{ "{:,}".format(job.salary_min) }}+
+                                {% else %}
+                                Up to ${{ "{:,}".format(job.salary_max) }}
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                            {% if job.job_type %}
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">{{ job.job_type }}</span>
+                            {% endif %}
                         </div>
                         <p class="text-slate-600 text-sm line-clamp-2 leading-relaxed">{{ job.snippet[:200] if job.snippet else 'No description available.' }}{% if job.snippet and job.snippet|length > 200 %}...{% endif %}</p>
                     </div>
@@ -183,13 +229,33 @@
                         <span class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-semibold">
                             Score: {{ "%.0f"|format(job.score) }}
                         </span>
-                        <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" 
-                           class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition shadow-sm">
-                            Apply Now
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                            </svg>
-                        </a>
+                        <div class="flex items-center gap-2">
+                            {% if user %}
+                            <form action="/job/{{ job.id }}/status" method="post" class="inline">
+                                <input type="hidden" name="status" value="saved">
+                                <button type="submit" class="p-2 text-slate-400 hover:text-amber-500 transition" title="Save for later">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                                    </svg>
+                                </button>
+                            </form>
+                            <form action="/job/{{ job.id }}/status" method="post" class="inline">
+                                <input type="hidden" name="status" value="hidden">
+                                <button type="submit" class="p-2 text-slate-400 hover:text-red-500 transition" title="Hide this job">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                                    </svg>
+                                </button>
+                            </form>
+                            {% endif %}
+                            <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition shadow-sm">
+                                Apply Now
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

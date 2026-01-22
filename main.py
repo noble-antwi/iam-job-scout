@@ -1,6 +1,6 @@
 import os
 import secrets
-import asyncio
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Optional
@@ -17,6 +17,28 @@ from db.database import engine, Base, get_db, SessionLocal
 from db.models import Job, Settings, ScanRun
 from jobs.job_service import JobService
 from scheduler.scheduler_service import SchedulerService
+from prometheus_fastapi_instrumentator import Instrumentator
+
+# Import new monitoring module
+from monitoring import (
+    PrometheusMiddleware,
+    SCAN_RUNS_TOTAL,
+    SCAN_DURATION,
+    SCAN_ERRORS,
+    JOB_STATUS_UPDATES,
+    LAST_SUCCESSFUL_SCAN_TIMESTAMP,
+    update_business_metrics,
+    initialize_metrics,
+)
+from monitoring.db_metrics import update_connection_pool_metrics
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -28,13 +50,16 @@ SCAN_HOUR = int(os.getenv("SCAN_HOUR", "6"))
 _session_secret = os.getenv("SESSION_SECRET", "")
 if not _session_secret:
     _session_secret = secrets.token_hex(32)
-    print("WARNING: SESSION_SECRET not set. Using auto-generated secret (sessions will reset on restart).")
+    logger.warning("SESSION_SECRET not set. Using auto-generated secret (sessions will reset on restart).")
 SESSION_SECRET = _session_secret
 
 if ADMIN_PASSWORD == "admin123":
-    print("WARNING: Using default ADMIN_PASSWORD. Please set a secure password in production.")
+    logger.warning("Using default ADMIN_PASSWORD. Please set a secure password.")
 
 scheduler_service = SchedulerService()
+
+# Metrics are now defined in monitoring/metrics.py
+# Initialize them at startup (see lifespan function)
 
 
 def is_demo_mode() -> bool:
@@ -42,50 +67,108 @@ def is_demo_mode() -> bool:
 
 
 async def scheduled_scan():
-    print(f"[{datetime.utcnow()}] Running scheduled job scan...")
+    """Run scheduled job scan with monitoring."""
+    import time
+    logger.info("Running scheduled job scan...")
+    
+    start_time = time.time()
     db = SessionLocal()
+    
     try:
         job_service = JobService(db)
         result = await job_service.run_scan()
-        print(f"[{datetime.utcnow()}] Scan completed: {result}")
+        logger.info(f"Scan completed: {result}")
+        
+        if result.get("success"):
+            SCAN_RUNS_TOTAL.labels(status="success").inc()
+            # Update timestamp of last successful scan
+            LAST_SUCCESSFUL_SCAN_TIMESTAMP.set(time.time())
+        else:
+            SCAN_RUNS_TOTAL.labels(status="failed").inc()
+        
+        # Update business metrics after scan
+        update_business_metrics()
+        
     except Exception as e:
-        print(f"[{datetime.utcnow()}] Scan error: {e}")
+        logger.error(f"Scan error: {e}", exc_info=True)
+        SCAN_RUNS_TOTAL.labels(status="error").inc()
+        SCAN_ERRORS.labels(error_type=type(e).__name__).inc()
     finally:
+        duration = time.time() - start_time
+        SCAN_DURATION.observe(duration)
         db.close()
+        logger.info(f"Scan completed in {duration:.2f}s")
 
 
 async def scheduled_cleanup():
-    print(f"[{datetime.utcnow()}] Running scheduled cleanup...")
+    logger.info("Running scheduled cleanup...")
     db = SessionLocal()
     try:
         job_service = JobService(db)
+        # Mark jobs older than 7 days as stale (likely expired)
+        stale = job_service.mark_stale_jobs(days=7)
+        # Delete jobs older than 30 days
         deleted = job_service.cleanup_old_jobs(days=30)
-        print(f"[{datetime.utcnow()}] Cleanup completed: {deleted} old jobs removed")
+        logger.info(f"Cleanup completed: {stale} jobs marked stale, {deleted} old jobs removed")
     except Exception as e:
-        print(f"[{datetime.utcnow()}] Cleanup error: {e}")
+        logger.error(f"Cleanup error: {e}", exc_info=True)
     finally:
         db.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application lifespan with monitoring initialization."""
     Base.metadata.create_all(bind=engine)
     
+    # Initialize monitoring metrics
+    update_uptime = initialize_metrics()
+    logger.info("Monitoring metrics initialized")
+    
+    # Schedule periodic metrics updates (every 30 seconds)
+    def update_all_metrics():
+        update_business_metrics()
+        update_connection_pool_metrics(engine)
+        update_uptime()
+    
+    # Update metrics immediately on startup
+    update_all_metrics()
+    
+    # Schedule regular updates using the scheduler's internal add_job method
+    scheduler_service.scheduler.add_job(
+        update_all_metrics,
+        trigger='interval',
+        seconds=30,
+        id='metrics_update',
+        name='Update Prometheus metrics'
+    )
+
+    # Schedule scan and cleanup jobs
     scheduler_service.add_scan_job_on_days(scheduled_scan, days=SCAN_DAYS, hour=SCAN_HOUR)
     scheduler_service.add_cleanup_job(scheduled_cleanup, hour=3, minute=0)
     scheduler_service.start()
-    
-    print(f"Scheduler started: Scanning on {SCAN_DAYS.upper()} at {SCAN_HOUR}:00 UTC")
-    print(f"Cleanup runs daily at 3:00 AM UTC (removes jobs older than 30 days)")
+
+    logger.info(f"Scheduler started: Scanning on {SCAN_DAYS.upper()} at {SCAN_HOUR}:00 UTC")
+    logger.info("Cleanup runs daily at 3:00 AM UTC (removes jobs older than 30 days)")
+    logger.info("Metrics update every 30 seconds")
     
     yield
+    
     scheduler_service.shutdown()
+    logger.info("Application shutdown complete")
 
 
 app = FastAPI(title="IAM Job Scout", lifespan=lifespan)
+
+# Add monitoring middleware FIRST (order matters!)
+app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# Expose Prometheus metrics endpoint
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 
 def get_current_user(request: Request) -> Optional[str]:
@@ -94,39 +177,42 @@ def get_current_user(request: Request) -> Optional[str]:
 
 def verify_api_token(x_admin_token: Optional[str] = Header(None)) -> bool:
     if not ADMIN_API_TOKEN:
+        # No API token configured - require session auth instead
+        return False
+    if x_admin_token and x_admin_token == ADMIN_API_TOKEN:
         return True
-    if x_admin_token == ADMIN_API_TOKEN:
-        return True
-    raise HTTPException(status_code=401, detail="Invalid API token")
+    return False
 
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(
-    request: Request, 
+    request: Request,
     db: Session = Depends(get_db),
     q: str = Query("", description="Search query"),
     location: str = Query("", description="Filter by location"),
     sort: str = Query("newest", description="Sort order"),
-    page: int = Query(1, ge=1, description="Page number")
+    page: int = Query(1, ge=1, description="Page number"),
+    filter: str = Query("", description="Quick filter: today, high_score, remote")
 ):
     user = get_current_user(request)
     job_service = JobService(db)
-    
+
     per_page = 20
     jobs, total_jobs = job_service.search_jobs(
         query=q,
         location=location,
         sort=sort,
         page=page,
-        per_page=per_page
+        per_page=per_page,
+        quick_filter=filter
     )
-    
+
     stats = job_service.get_job_stats()
     latest_scan = job_service.get_latest_scan()
     locations = job_service.get_unique_locations()
-    
+
     total_pages = (total_jobs + per_page - 1) // per_page
-    
+
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
@@ -139,6 +225,7 @@ async def dashboard(
         "current_query": q,
         "current_location": location,
         "current_sort": sort,
+        "current_filter": filter,
         "current_page": page,
         "total_pages": total_pages,
         "has_prev": page > 1,
@@ -271,6 +358,79 @@ async def api_get_stats(db: Session = Depends(get_db)):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+
+
+@app.post("/job/{job_id}/status")
+async def update_job_status(
+    request: Request,
+    job_id: int,
+    status: str = Form(...),
+    notes: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Update a job's status (save, apply, hide)"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Login required")
+
+    job_service = JobService(db)
+    job = job_service.update_job_status(job_id, status, notes)
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or invalid status")
+    
+    # Track status updates in metrics
+    JOB_STATUS_UPDATES.labels(status=status).inc()
+    
+    # Update business metrics to reflect the change
+    update_business_metrics()
+
+    if request.headers.get("accept") == "application/json":
+        return {"success": True, "job_id": job_id, "status": status}
+    return RedirectResponse(url=request.headers.get("referer", "/"), status_code=303)
+
+
+@app.post("/job/{job_id}/notes")
+async def update_job_notes(
+    request: Request,
+    job_id: int,
+    notes: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Update just the notes for a job"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Login required")
+
+    job_service = JobService(db)
+    job = job_service.update_job_notes(job_id, notes)
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if request.headers.get("accept") == "application/json":
+        return {"success": True, "job_id": job_id, "notes": notes}
+    return RedirectResponse(url=request.headers.get("referer", "/saved"), status_code=303)
+
+
+@app.get("/saved", response_class=HTMLResponse)
+async def saved_jobs(request: Request, db: Session = Depends(get_db)):
+    """View saved jobs"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    job_service = JobService(db)
+    saved = job_service.get_jobs_by_status("saved")
+    applied = job_service.get_jobs_by_status("applied")
+
+    return templates.TemplateResponse("saved_jobs.html", {
+        "request": request,
+        "user": user,
+        "saved_jobs": saved,
+        "applied_jobs": applied,
+        "demo_mode": is_demo_mode()
+    })
 
 
 if __name__ == "__main__":
