@@ -60,7 +60,7 @@ Thumbs.db
 # Data
 data/
 
-# Replit
+# IDE and tool directories
 .upm/
 .cache/
 .config/
