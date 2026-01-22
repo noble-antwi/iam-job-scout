@@ -1,6 +1,6 @@
 # Monitoring Overview
 
-## 📁 New Monitoring Structure
+## New Monitoring Structure
 
 ```
 monitoring/
@@ -10,25 +10,25 @@ monitoring/
 └── db_metrics.py        # Database instrumentation utilities
 ```
 
-## 🎯 What Changed
+## What Changed
 
 ### Before (Old Setup)
-- ❌ Metrics defined in main.py (mixed concerns)
-- ❌ Only updated during scans (stale data)
-- ❌ Limited metrics (only business metrics)
-- ❌ No automatic HTTP tracking
-- ❌ No database performance tracking
+- Metrics defined in main.py (mixed concerns)
+- Only updated during scans (stale data)
+- Limited metrics (only business metrics)
+- No automatic HTTP tracking
+- No database performance tracking
 
 ### After (New Setup)
-- ✅ Organized monitoring module (separation of concerns)
-- ✅ Metrics updated every 30 seconds (fresh data)
-- ✅ Comprehensive metrics (4 Golden Signals)
-- ✅ Automatic HTTP request tracking via middleware
-- ✅ Database query tracking with decorators
-- ✅ External API monitoring utilities
-- ✅ Error tracking with context
+- Organized monitoring module (separation of concerns)
+- Metrics updated every 30 seconds (fresh data)
+- Comprehensive metrics (4 Golden Signals)
+- Automatic HTTP request tracking via middleware
+- Database query tracking with decorators
+- External API monitoring utilities
+- Error tracking with context
 
-## 📊 Metrics Categories
+## Metrics Categories
 
 ### 1. Latency (How long things take)
 - `http_request_duration_seconds` - HTTP response times
@@ -62,7 +62,7 @@ monitoring/
 - `iam_scan_runs_total` - Scan count by status
 - `iam_last_successful_scan_timestamp` - Last scan time
 
-## 🚀 How to Use
+## How to Use
 
 ### View Metrics
 ```bash
@@ -91,14 +91,14 @@ async def call_api():
         return response.json()
 ```
 
-## 📖 Documentation
+## Documentation
 
 - **Quick Start**: [../docs/MONITORING_QUICKSTART.md](../docs/MONITORING_QUICKSTART.md) - Get monitoring running in 10 minutes
 - **Full Guide**: [../docs/MONITORING.md](../docs/MONITORING.md) - Comprehensive documentation
 - **Prometheus Config**: [../docs/prometheus.yml.example](../docs/prometheus.yml.example) - Copy to your Prometheus server
 - **Alert Rules**: [../docs/prometheus-alerts.yml.example](../docs/prometheus-alerts.yml.example) - Production-ready alerts
 
-## 🔧 Setup Checklist
+## Setup Checklist
 
 - [ ] Application running with new monitoring code
 - [ ] Prometheus configured to scrape `/metrics`
@@ -107,7 +107,7 @@ async def call_api():
 - [ ] Alert rules deployed
 - [ ] Alertmanager configured (optional)
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # 1. Check metrics endpoint
@@ -123,14 +123,14 @@ for i in {1..100}; do curl http://localhost:5000/ & done
 # Visit: http://192.168.60.2:3000
 ```
 
-## 📈 Key Dashboards to Create
+## Key Dashboards to Create
 
 1. **Application Health** - Uptime, error rate, request rate
 2. **Performance** - Response time, DB queries, API calls
 3. **Business Metrics** - Jobs, scans, user activity
 4. **Resources** - Connections, memory, saturation
 
-## 🚨 Recommended Alerts
+## Recommended Alerts
 
 1. Service Down (critical)
 2. Error Rate > 5% (warning)
@@ -138,14 +138,14 @@ for i in {1..100}; do curl http://localhost:5000/ & done
 4. No scan in 24 hours (warning)
 5. DB connections > 80% (warning)
 
-## 🎓 Learning Resources
+## Learning Resources
 
 - [Google SRE Book - Monitoring](https://sre.google/sre-book/monitoring-distributed-systems/)
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Tutorials](https://grafana.com/tutorials/)
 - [4 Golden Signals](https://sre.google/sre-book/monitoring-distributed-systems/#xref_monitoring_golden-signals)
 
-## 🤝 Support
+## Support
 
 Questions? Check the documentation or review the code in `monitoring/` directory.
 

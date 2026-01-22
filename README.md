@@ -94,7 +94,7 @@ Monitoring & Observability
 
 IAM Job Scout includes **production-grade monitoring** with Prometheus metrics and Grafana dashboard support.
 
-## 📊 Available Metrics
+## Available Metrics
 
 ### Application Performance
 - **HTTP Request Duration** - Response time histograms (p50, p95, p99)
@@ -119,7 +119,7 @@ IAM Job Scout includes **production-grade monitoring** with Prometheus metrics a
 - **Memory Usage** - Process memory consumption
 - **Python GC** - Garbage collection metrics
 
-## 🚀 Quick Setup
+## Quick Setup
 
 ### 1. Access Metrics Endpoint
 
@@ -148,7 +148,7 @@ Import metrics and create panels for:
 - Response Time p95 (Time Series)
 - Error Rate % (Gauge)
 
-## 📚 Detailed Documentation
+## Detailed Documentation
 
 - **[Quick Start Guide](docs/MONITORING_QUICKSTART.md)** - Get monitoring running in 10 minutes
 - **[Complete Monitoring Guide](docs/MONITORING.md)** - Comprehensive documentation with examples
@@ -157,7 +157,7 @@ Import metrics and create panels for:
 - **[Prometheus Config Example](docs/prometheus.yml.example)** - Ready-to-use configuration
 - **[Alert Rules Example](docs/prometheus-alerts.yml.example)** - Production-ready alerts
 
-## 🎯 Key Monitoring Queries
+## Key Monitoring Queries
 
 ```promql
 # Total jobs in database
@@ -176,7 +176,7 @@ histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 (time() - iam_last_successful_scan_timestamp) / 3600
 ```
 
-## 🚨 Recommended Alerts
+## Recommended Alerts
 
 - Service Down (critical)
 - Error Rate > 5% (warning)
