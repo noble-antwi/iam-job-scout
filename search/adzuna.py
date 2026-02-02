@@ -31,9 +31,7 @@ class AdzunaAPI:
             "app_id": self.app_id,
             "app_key": self.app_key,
             "results_per_page": results_per_page,
-            "page": page,
             "what": query,
-            "content-type": "application/json",
             "max_days_old": 30  # Jobs from last 30 days
         }
 
@@ -42,6 +40,7 @@ class AdzunaAPI:
                 response = await client.get(
                     f"{self.BASE_URL}/{page}",
                     params=params,
+                    headers={"Content-Type": "application/json"},
                     timeout=30
                 )
                 response.raise_for_status()
