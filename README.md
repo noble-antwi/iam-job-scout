@@ -1,12 +1,17 @@
-# IAM Job Scout
+# IAM & Cybersecurity Job Scout
 
-A web-based job board that helps junior to mid-level professionals find Identity & Access Management (IAM) jobs across the USA. It automatically searches for job postings using Google Custom Search Engine and displays them in a clean, searchable interface.
+A comprehensive web-based job board that helps entry to mid-level professionals find Identity & Access Management (IAM), Cybersecurity, and Cloud Security jobs across the USA. It automatically searches for job postings and displays them in a clean, searchable interface with intelligent filtering.
 
 ## Features
 
-- **Job Search**: Full-text search across title, company, and description
-- **Smart Filtering**: Automatically excludes senior/advanced roles, focuses on junior to mid-level positions
-- **Location Filter**: Filter jobs by geographic location
+- **Multi-Domain Job Search**: Covers IAM, Cybersecurity, and Cloud Security roles
+- **Smart Filtering**: Automatically excludes senior/advanced roles, focuses on entry to mid-level positions
+- **Comprehensive Coverage**: 
+  - IAM: Okta, SailPoint, CyberArk, Azure AD/Entra, Active Directory, PAM
+  - Cybersecurity: SOC analyst, threat analyst, security operations, incident response, GRC
+  - Cloud Security: AWS, Azure, GCP security roles, DevSecOps, cloud compliance
+- **Full-text Search**: Search across job title, company, and description
+- **Location Filter**: Filter jobs by geographic location across the US
 - **Sorting Options**: Sort by newest, oldest, relevance, or company name
 - **Pagination**: Efficiently browse through all job listings
 - **Auto-Cleanup**: Jobs older than 30 days are automatically removed

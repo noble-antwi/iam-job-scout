@@ -4,7 +4,8 @@ from functools import lru_cache
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc, asc, func
 from db.models import Job, ScanRun
-from search.jsearch import JSearchAPI
+from search.api_manager import APIManager
+from search.deduplication import JobDeduplicator
 
 
 # Simple in-memory cache for stats (refreshes every 5 minutes)
@@ -16,7 +17,7 @@ CACHE_TTL = timedelta(minutes=5)
 class JobService:
     def __init__(self, db: Session):
         self.db = db
-        self.search = JSearchAPI()
+        self.api_manager = APIManager()
 
     async def run_scan(self) -> Dict:
         scan_run = ScanRun(status="running")
@@ -25,16 +26,18 @@ class JobService:
         self.db.refresh(scan_run)
 
         try:
-            all_jobs = []
-            queries = self.search.get_search_queries()
-
-            for query in queries:
-                results = await self.search.search(query)
-                all_jobs.extend(results)
+            # Fetch jobs from all configured APIs
+            all_jobs, api_stats = await self.api_manager.search_all()
+            print(f"API results: {api_stats}")
 
             new_jobs = 0
             total_found = len(all_jobs)
             seen_urls: Set[str] = set()
+            seen_fingerprints: Set[str] = set()
+
+            # Pre-load recent jobs for fuzzy matching (last 30 days)
+            recent_cutoff = datetime.utcnow() - timedelta(days=30)
+            recent_jobs = self.db.query(Job).filter(Job.created_at >= recent_cutoff).all()
 
             for job_data in all_jobs:
                 url = job_data.get("url", "")
@@ -47,33 +50,44 @@ class JobService:
                 if existing:
                     continue
 
-                # Check for duplicate by title + company (same job posted multiple times)
-                title = job_data["title"]
+                # Generate fingerprint for this job
+                title = job_data.get("title", "")
                 company = job_data.get("company", "")
-                if title and company:
-                    duplicate = self.db.query(Job).filter(
-                        Job.title == title,
-                        Job.company == company
-                    ).first()
-                    if duplicate:
-                        continue
+                location = job_data.get("location", "")
+                fingerprint = JobDeduplicator.generate_fingerprint(title, company, location)
 
-                if not existing:
-                    job = Job(
-                        title=job_data["title"],
-                        company=job_data.get("company"),
-                        location=job_data.get("location"),
-                        snippet=job_data.get("snippet"),
-                        url=url,
-                        source=job_data.get("source", "jsearch"),
-                        score=job_data.get("score", 0.0),
-                        salary_min=job_data.get("salary_min"),
-                        salary_max=job_data.get("salary_max"),
-                        job_type=job_data.get("job_type"),
-                        is_new=True
-                    )
-                    self.db.add(job)
-                    new_jobs += 1
+                # Skip if we've seen this fingerprint in current batch
+                if fingerprint in seen_fingerprints:
+                    continue
+                seen_fingerprints.add(fingerprint)
+
+                # Check for duplicate using fuzzy matching against recent jobs
+                match_result = JobDeduplicator.find_best_match(
+                    job_data, recent_jobs,
+                    title_threshold=0.85,
+                    company_threshold=0.80
+                )
+                if match_result:
+                    continue
+
+                # No duplicate found - add the job
+                job = Job(
+                    title=job_data.get("title", ""),
+                    company=job_data.get("company"),
+                    location=job_data.get("location"),
+                    snippet=job_data.get("snippet"),
+                    url=url,
+                    source=job_data.get("source", "jsearch"),
+                    score=job_data.get("score", 0.0),
+                    salary_min=job_data.get("salary_min"),
+                    salary_max=job_data.get("salary_max"),
+                    job_type=job_data.get("job_type"),
+                    is_new=True
+                )
+                self.db.add(job)
+                new_jobs += 1
+                # Add to recent_jobs list for same-batch dedup
+                recent_jobs.append(job)
 
             self.db.commit()
 
