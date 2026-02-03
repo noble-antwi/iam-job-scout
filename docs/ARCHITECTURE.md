@@ -6,77 +6,134 @@ This document describes the system architecture and provides diagrams you can us
 
 IAM Job Scout is a multi-API job aggregation platform built with FastAPI. It searches multiple job APIs, deduplicates results, and presents them through a web dashboard.
 
-## Architecture Diagram (Mermaid)
+---
 
-GitHub renders Mermaid diagrams natively. Copy this into your README:
+## Complete System Architecture (Single View)
+
+**Copy this Mermaid code into your README.md - GitHub will render it automatically:**
 
 ```mermaid
 flowchart TB
-    subgraph Client["Client Layer"]
-        Browser["Web Browser"]
+    subgraph USER["👤 USER LAYER"]
+        Browser["🌐 Web Browser"]
+        Admin["👨‍💼 Admin User"]
+        Cron["⏰ Scheduled Cron"]
     end
 
-    subgraph Web["Web Layer"]
-        FastAPI["FastAPI Application"]
-        Templates["Jinja2 Templates"]
-        Static["Static Files (CSS/JS)"]
+    subgraph FRONTEND["🎨 FRONTEND (templates/)"]
+        Dashboard["dashboard.html<br/>• Job listings<br/>• Search & filters<br/>• API status"]
+        JobDetail["job_detail.html<br/>• Full job info<br/>• Similar jobs"]
+        SavedJobs["saved_jobs.html<br/>• Saved jobs<br/>• Applied jobs"]
+        Login["login.html<br/>• Admin auth"]
     end
 
-    subgraph Services["Service Layer"]
-        JobService["JobService"]
-        Scheduler["SchedulerService\n(APScheduler)"]
+    subgraph WEBAPP["⚡ WEB APPLICATION (main.py)"]
+        FastAPI["FastAPI App<br/>Port 5000"]
+        Routes["Routes<br/>• GET /<br/>• GET /job/{id}<br/>• POST /admin/run-scan<br/>• GET /api/jobs"]
+        Middleware["Middleware<br/>• Session<br/>• Prometheus"]
+        Static["Static Files<br/>• CSS<br/>• JavaScript"]
     end
 
-    subgraph Search["Search Layer"]
-        APIManager["APIManager"]
-        JSearch["JSearchAPI\n(RapidAPI)"]
-        Adzuna["AdzunaAPI"]
-        RemoteOK["RemoteOKAPI"]
-        Dedup["JobDeduplicator"]
-        Filter["JobFilter"]
+    subgraph SERVICES["🔧 SERVICES"]
+        JobService["JobService<br/>(jobs/job_service.py)<br/>• run_scan()<br/>• search_jobs()<br/>• update_status()"]
+        Scheduler["SchedulerService<br/>(scheduler/)<br/>• APScheduler<br/>• Mon/Wed/Sat 6AM UTC"]
     end
 
-    subgraph Data["Data Layer"]
-        ORM["SQLAlchemy ORM"]
+    subgraph SEARCH["🔍 SEARCH LAYER (search/)"]
+        APIManager["APIManager<br/>(api_manager.py)<br/>• Orchestrates APIs<br/>• Concurrent calls"]
+
+        subgraph APIs["Job Search APIs"]
+            JSearch["JSearchAPI<br/>• 18 queries<br/>• RapidAPI"]
+            Adzuna["AdzunaAPI<br/>• 14 queries<br/>• 250/month free"]
+            RemoteOK["RemoteOKAPI<br/>• 1 query<br/>• No auth needed"]
+        end
+
+        Dedup["JobDeduplicator<br/>(deduplication.py)<br/>• Fuzzy matching<br/>• 85% title threshold"]
+        Filter["JobFilter<br/>(filters.py)<br/>• Junior/Mid filter<br/>• Score calculation"]
+    end
+
+    subgraph DATA["💾 DATA LAYER (db/)"]
+        ORM["SQLAlchemy ORM<br/>(database.py)"]
+        subgraph Tables["Database Tables"]
+            Jobs["Jobs Table<br/>• title, company<br/>• location, url<br/>• score, status"]
+            ScanRun["ScanRun Table<br/>• started_at<br/>• jobs_found<br/>• status"]
+        end
         DB[(SQLite/PostgreSQL)]
     end
 
-    subgraph External["External APIs"]
-        JSearchExt["JSearch\n(Indeed, LinkedIn)"]
-        AdzunaExt["Adzuna API"]
-        RemoteOKExt["RemoteOK API"]
+    subgraph EXTERNAL["🌍 EXTERNAL SERVICES"]
+        JSearchExt["JSearch API<br/>(RapidAPI)<br/>Indeed, LinkedIn,<br/>Glassdoor"]
+        AdzunaExt["Adzuna API<br/>US Job Market<br/>250 req/month"]
+        RemoteOKExt["RemoteOK API<br/>Remote Jobs Only<br/>Free, No Auth"]
     end
 
-    subgraph Monitoring["Monitoring"]
-        Prometheus["Prometheus Metrics"]
-        Health["Health Checks"]
+    subgraph MONITORING["📊 MONITORING (monitoring/)"]
+        Metrics["Prometheus Metrics<br/>• Request latency<br/>• Scan duration<br/>• Job counts"]
+        Prometheus["Prometheus Server<br/>:9090"]
+        Grafana["Grafana<br/>:3000<br/>Dashboards"]
     end
 
+    %% User connections
     Browser --> FastAPI
-    FastAPI --> Templates
+    Admin --> FastAPI
+    Cron --> Scheduler
+
+    %% Frontend connections
+    FastAPI --> Dashboard
+    FastAPI --> JobDetail
+    FastAPI --> SavedJobs
+    FastAPI --> Login
     FastAPI --> Static
-    FastAPI --> JobService
-    FastAPI --> Prometheus
-    FastAPI --> Health
 
+    %% Service connections
+    Routes --> JobService
     Scheduler --> JobService
-    JobService --> APIManager
-    JobService --> ORM
+    Middleware --> Metrics
 
+    %% Search flow
+    JobService --> APIManager
     APIManager --> JSearch
     APIManager --> Adzuna
     APIManager --> RemoteOK
-    APIManager --> Dedup
-
-    JSearch --> Filter
-    Adzuna --> Filter
-    RemoteOK --> Filter
 
     JSearch --> JSearchExt
     Adzuna --> AdzunaExt
     RemoteOK --> RemoteOKExt
 
-    ORM --> DB
+    JSearch --> Filter
+    Adzuna --> Filter
+    RemoteOK --> Filter
+    Filter --> Dedup
+
+    %% Data flow
+    JobService --> ORM
+    ORM --> Jobs
+    ORM --> ScanRun
+    Jobs --> DB
+    ScanRun --> DB
+
+    %% Monitoring flow
+    Metrics --> Prometheus
+    Prometheus --> Grafana
+
+    %% Styling
+    classDef userStyle fill:#3B82F6,stroke:#1E40AF,color:#fff
+    classDef frontendStyle fill:#10B981,stroke:#065F46,color:#fff
+    classDef webappStyle fill:#8B5CF6,stroke:#5B21B6,color:#fff
+    classDef serviceStyle fill:#F59E0B,stroke:#92400E,color:#fff
+    classDef searchStyle fill:#EC4899,stroke:#9D174D,color:#fff
+    classDef dataStyle fill:#06B6D4,stroke:#0E7490,color:#fff
+    classDef externalStyle fill:#6B7280,stroke:#374151,color:#fff
+    classDef monitorStyle fill:#EF4444,stroke:#B91C1C,color:#fff
+
+    class Browser,Admin,Cron userStyle
+    class Dashboard,JobDetail,SavedJobs,Login frontendStyle
+    class FastAPI,Routes,Middleware,Static webappStyle
+    class JobService,Scheduler serviceStyle
+    class APIManager,JSearch,Adzuna,RemoteOK,Dedup,Filter searchStyle
+    class ORM,Jobs,ScanRun,DB dataStyle
+    class JSearchExt,AdzunaExt,RemoteOKExt externalStyle
+    class Metrics,Prometheus,Grafana monitorStyle
 ```
 
 ## Component Diagram (Mermaid)
