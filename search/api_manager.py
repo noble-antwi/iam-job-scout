@@ -27,6 +27,32 @@ class APIManager:
             available.append("adzuna")
         return available
 
+    def get_api_status(self) -> List[Dict]:
+        """Return detailed status of all APIs for dashboard display."""
+        return [
+            {
+                "name": "JSearch",
+                "id": "jsearch",
+                "configured": self.jsearch.is_configured(),
+                "description": "Indeed, LinkedIn, Glassdoor",
+                "queries": len(self.jsearch.get_search_queries()) if self.jsearch.is_configured() else 0
+            },
+            {
+                "name": "Adzuna",
+                "id": "adzuna",
+                "configured": self.adzuna.is_configured(),
+                "description": "250 free requests/month",
+                "queries": len(self.adzuna.get_search_queries()) if self.adzuna.is_configured() else 0
+            },
+            {
+                "name": "RemoteOK",
+                "id": "remoteok",
+                "configured": True,  # Always available
+                "description": "Remote jobs only",
+                "queries": 1  # Single API call
+            }
+        ]
+
     async def search_all(self) -> Tuple[List[Dict], Dict[str, int]]:
         """
         Search all available APIs and aggregate results.

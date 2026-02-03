@@ -82,102 +82,34 @@ class JSearchAPI:
 
     def get_search_queries(self) -> List[str]:
         """
-        Optimized search queries balancing coverage vs API costs.
-        Reduced from ~75 to ~55 queries by removing redundancies.
-        Broader queries (e.g., "security analyst") capture narrower variants.
+        Consolidated search queries for API cost efficiency.
+        Reduced to 18 broad queries that maximize coverage.
+        Broad queries like "security analyst" capture junior/senior/SOC variants.
         """
         return [
-            # ===== IAM ROLES (18 queries) =====
-            # Core IAM (broad terms capture most variations)
+            # ===== IAM (5 queries) =====
             "identity access management",
-            "IAM engineer",
-            "IAM analyst",
+            "IAM analyst engineer",
+            "Okta SailPoint administrator",
+            "CyberArk privileged access",
+            "Active Directory engineer",
 
-            # Platform-specific (high-value, specific results)
-            "Okta administrator",
-            "SailPoint engineer",
-            "CyberArk engineer",
-            "Azure AD engineer",
-            "Saviynt engineer",
-            "Ping Identity engineer",
-
-            # Concept-based
-            "privileged access management",
-            "identity governance",
-            "SSO engineer",
-            "Active Directory administrator",
-
-            # IAM-adjacent (captures security+IAM overlap)
-            "security analyst IAM",
-            "access management analyst",
-            "identity specialist",
-            "IAM support analyst",
-            "access analyst",
-
-            # ===== CYBERSECURITY ROLES (15 queries) =====
-            # Core positions (broad queries - avoid duplicates)
+            # ===== CYBERSECURITY (5 queries) =====
             "cybersecurity analyst",
-            "security analyst",           # Captures IT/information security analyst
-            "SOC analyst",
+            "security analyst",
             "security engineer",
-            "junior security analyst",    # Entry-level focus
+            "SOC analyst",
+            "GRC compliance analyst",
 
-            # Threat and vulnerability
-            "threat analyst",
-            "vulnerability analyst",
-            "security researcher",
-
-            # Incident response and monitoring
-            "incident response analyst",
-            "security monitoring analyst",
-
-            # GRC and compliance
-            "GRC analyst",
-            "security auditor",
-            "risk analyst security",
-
-            # Application and network security
-            "application security analyst",
-            "network security analyst",
-
-            # ===== OFFENSIVE SECURITY (4 queries) - NEW =====
-            "penetration tester",
-            "red team analyst",
-            "ethical hacker",
-            "offensive security analyst",
-
-            # ===== FORENSICS & DFIR (4 queries) - NEW =====
-            "digital forensics analyst",
-            "malware analyst",
-            "incident response forensics",
-            "cyber forensics investigator",
-
-            # ===== ENDPOINT & DATA SECURITY (4 queries) - NEW =====
-            "endpoint security analyst",
-            "EDR analyst",
-            "data security analyst",
-            "privacy analyst",
-
-            # ===== CLOUD SECURITY (12 queries) =====
-            # General cloud security
+            # ===== CLOUD SECURITY (4 queries) =====
             "cloud security engineer",
-            "cloud security analyst",
-
-            # Platform-specific (consolidated)
-            "AWS security engineer",
-            "Azure security engineer",
-            "GCP security engineer",
-
-            # Cloud operations and DevSecOps
+            "AWS Azure security engineer",
             "DevSecOps engineer",
-            "cloud infrastructure security",
-
-            # Cloud IAM overlap
-            "cloud IAM engineer",
-            "AWS IAM engineer",
-
-            # Container and modern infrastructure - NEW
-            "container security engineer",
-            "kubernetes security engineer",
             "infrastructure security engineer",
+
+            # ===== SPECIALIZED (4 queries) =====
+            "penetration tester",
+            "vulnerability analyst",
+            "incident response analyst",
+            "threat intelligence analyst",
         ]

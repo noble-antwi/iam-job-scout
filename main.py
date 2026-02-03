@@ -210,6 +210,7 @@ async def dashboard(
     stats = job_service.get_job_stats()
     latest_scan = job_service.get_latest_scan()
     locations = job_service.get_unique_locations()
+    api_status = job_service.api_manager.get_api_status()
 
     total_pages = (total_jobs + per_page - 1) // per_page
 
@@ -222,6 +223,7 @@ async def dashboard(
         "jobs": jobs,
         "total_jobs": total_jobs,
         "locations": locations,
+        "api_status": api_status,
         "current_query": q,
         "current_location": location,
         "current_sort": sort,

@@ -14,3 +14,8 @@ dependencies = [
     "sqlalchemy>=2.0.45",
     "uvicorn>=0.38.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
