@@ -31,6 +31,12 @@ A comprehensive web-based job board that helps entry to mid-level professionals 
 - **Monitoring**: Prometheus + Grafana
 - **Containerization**: Docker + Docker Compose
 
+## Architecture
+
+![IAM Job Scout Architecture](docs/images/architecture.png)
+
+The system follows a layered architecture with multi-API job aggregation, intelligent deduplication, and comprehensive monitoring. See the diagram above for a complete overview of how components interact.
+
 ---
 
 ## Running Your Own Instance
@@ -302,9 +308,7 @@ scrape_configs:
 
 ### Detailed Documentation
 
-- **[Quick Start Guide](docs/MONITORING_QUICKSTART.md)** - Get monitoring running in 10 minutes
-- **[Complete Monitoring Guide](docs/MONITORING.md)** - Comprehensive documentation with examples
-- **[Architecture Diagram](docs/ARCHITECTURE_DIAGRAM.md)** - Visual guide to system architecture
+- **[Complete Monitoring Guide](docs/MONITORING.md)** - Comprehensive documentation with quick start and examples
 - **[Docker IP Guide](docs/DOCKER_IP_GUIDE.md)** - Networking tips for Docker deployments
 - **[Prometheus Config Example](docs/prometheus.yml.example)** - Ready-to-use configuration
 - **[Alert Rules Example](docs/prometheus-alerts.yml.example)** - Production-ready alerts
