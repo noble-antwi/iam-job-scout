@@ -534,58 +534,6 @@ Add:
 
 ---
 
-## Project Structure
-
-```
-iam-job-scout/
-├── main.py                 # FastAPI application entry point
-├── requirements.txt        # Python dependencies
-├── pyproject.toml          # Project metadata
-├── Dockerfile              # Docker containerization
-├── docker-compose.yml      # Docker Compose orchestration
-├── .env.example            # Environment variable template
-│
-├── db/                     # Database layer
-│   ├── database.py         # SQLAlchemy setup
-│   └── models.py           # ORM models (Job, ScanRun, Settings)
-│
-├── jobs/                   # Job service layer
-│   └── job_service.py      # Business logic for job management
-│
-├── search/                 # Multi-API job search
-│   ├── api_manager.py      # API orchestration
-│   ├── jsearch.py          # JSearch API (RapidAPI)
-│   ├── adzuna.py           # Adzuna API
-│   ├── remoteok.py         # RemoteOK API (no auth)
-│   ├── filters.py          # Job filtering logic
-│   └── deduplication.py    # Fuzzy duplicate detection
-│
-├── scheduler/              # Job scheduling
-│   └── scheduler_service.py
-│
-├── monitoring/             # Prometheus metrics
-│   ├── metrics.py          # Metric definitions
-│   ├── middleware.py       # HTTP instrumentation
-│   └── db_metrics.py       # Database instrumentation
-│
-├── templates/              # Jinja2 HTML templates
-│   ├── base.html
-│   ├── dashboard.html
-│   ├── job_detail.html
-│   ├── login.html
-│   └── saved_jobs.html
-│
-├── docs/                   # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── MONITORING.md
-│   └── ...
-│
-└── tests/                  # Test suite
-    └── test_imports.py
-```
-
----
-
 ## Running Tests
 
 ```bash
